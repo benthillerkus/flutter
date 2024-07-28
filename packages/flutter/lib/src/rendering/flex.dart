@@ -831,10 +831,18 @@ class RenderFlex extends RenderBox with ContainerRenderObjectMixin<RenderBox, Fl
   BoxConstraints _constraintsForFlexChild(RenderBox child, BoxConstraints constraints, double maxChildExtent) {
     assert(_getFlex(child) > 0.0);
     assert(maxChildExtent >= 0.0);
-    final double minChildExtent = switch (_getFit(child)) {
+    double minChildExtent = switch (_getFit(child)) {
       FlexFit.tight => maxChildExtent,
       FlexFit.loose => 0.0,
     };
+    // Prevent flex children from being smaller than the overlap between them.
+    // Since the flex would have a size of 0 and the overlap is negative,
+    // instead of the child, you'd just see a twice as large overlap.
+    // Worse: this would stack up, so the more flex children you have,
+    // the larger the overlap would become.
+    if (spacing < 0) {
+      minChildExtent = math.max(-spacing, minChildExtent);
+    }
     final bool fillCrossAxis = switch (crossAxisAlignment) {
       CrossAxisAlignment.stretch  => true,
       CrossAxisAlignment.start ||
