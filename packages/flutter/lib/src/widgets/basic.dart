@@ -4605,6 +4605,7 @@ class Flex extends MultiChildRenderObjectWidget {
     required this.direction,
     this.mainAxisAlignment = MainAxisAlignment.start,
     this.mainAxisSize = MainAxisSize.max,
+    this.spacing = 0,
     this.crossAxisAlignment = CrossAxisAlignment.center,
     this.textDirection,
     this.verticalDirection = VerticalDirection.down,
@@ -4640,6 +4641,25 @@ class Flex extends MultiChildRenderObjectWidget {
   /// there will be no remaining free space to maximize or minimize, making this
   /// value irrelevant to the final layout.
   final MainAxisSize mainAxisSize;
+
+  /// How much space should be placed between children in the main axis.
+  ///
+  /// [spacing] sets the lower bound for the space between [children].
+  /// The space is fixed size and non-flexible, so if this [Flex] has three
+  /// and a spacing of 10.0, this [Flex] will need to be atleast 20.0 pixels
+  /// on the main axis.
+  ///
+  /// If [mainAxisAlignment] is set to [MainAxisAlignment.spaceBetween]
+  /// or if the [mainAxisSize] is [MainAxisSize.min], and the [mainAxisAlignment]
+  /// is [MainAxisAlignment.start], [MainAxisAlignment.center] or
+  /// [MainAxisAlignment.end] spacing will only be put between children.
+  ///
+  /// If the [mainAxisSize] is [MainAxisSize.max], and the [mainAxisAlignment]
+  /// is [MainAxisAlignment.spaceAround] or [MainAxisAlignment.spaceEvenly]
+  /// spacing will also be ensured before and after the last child.
+  /// 
+  /// If the spacing is negative, it will overlap the children.
+  final double spacing;
 
   /// How the children should be placed along the cross axis.
   ///
@@ -4752,6 +4772,7 @@ class Flex extends MultiChildRenderObjectWidget {
       direction: direction,
       mainAxisAlignment: mainAxisAlignment,
       mainAxisSize: mainAxisSize,
+      spacing: spacing,
       crossAxisAlignment: crossAxisAlignment,
       textDirection: getEffectiveTextDirection(context),
       verticalDirection: verticalDirection,
@@ -4766,6 +4787,7 @@ class Flex extends MultiChildRenderObjectWidget {
       ..direction = direction
       ..mainAxisAlignment = mainAxisAlignment
       ..mainAxisSize = mainAxisSize
+      ..spacing = spacing
       ..crossAxisAlignment = crossAxisAlignment
       ..textDirection = getEffectiveTextDirection(context)
       ..verticalDirection = verticalDirection
@@ -4779,6 +4801,7 @@ class Flex extends MultiChildRenderObjectWidget {
     properties.add(EnumProperty<Axis>('direction', direction));
     properties.add(EnumProperty<MainAxisAlignment>('mainAxisAlignment', mainAxisAlignment));
     properties.add(EnumProperty<MainAxisSize>('mainAxisSize', mainAxisSize, defaultValue: MainAxisSize.max));
+    properties.add(DoubleProperty('spacing', spacing, defaultValue: 0.0, unit: 'px'));
     properties.add(EnumProperty<CrossAxisAlignment>('crossAxisAlignment', crossAxisAlignment));
     properties.add(EnumProperty<TextDirection>('textDirection', textDirection, defaultValue: null));
     properties.add(EnumProperty<VerticalDirection>('verticalDirection', verticalDirection, defaultValue: VerticalDirection.down));
@@ -4985,6 +5008,7 @@ class Row extends Flex {
     super.key,
     super.mainAxisAlignment,
     super.mainAxisSize,
+    super.spacing,
     super.crossAxisAlignment,
     super.textDirection,
     super.verticalDirection,
@@ -5176,6 +5200,7 @@ class Column extends Flex {
     super.key,
     super.mainAxisAlignment,
     super.mainAxisSize,
+    super.spacing,
     super.crossAxisAlignment,
     super.textDirection,
     super.verticalDirection,

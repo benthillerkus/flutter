@@ -888,18 +888,158 @@ void main() {
       expect(flex.getDryBaseline(BoxConstraints.loose(size), TextBaseline.alphabetic), 10.0);
       size = const Size(300, 100);
       // box 1 one line, box 2 one.
-      expect(flex.getDryLayout(BoxConstraints.loose(size)), const Size(300.0, 10.0));
-      expect(flex.getDryBaseline(BoxConstraints.loose(size), TextBaseline.alphabetic), 10.0);
+      expect(flex.getDryLayout(BoxConstraints.loose(size)),
+          const Size(300.0, 10.0));
+      expect(
+          flex.getDryBaseline(
+              BoxConstraints.loose(size), TextBaseline.alphabetic),
+          10.0);
     });
   });
 
-  test('Can call methods that check overflow even if overflow value is not set', () {
+  group('Spacing', () {
+    group('Distribution', () {
+      test('No spacing', () {
+        // The remaining space would be placed after the RenderFlex
+        expect(MainAxisAlignment.start.distributeSpace(60, 3, 0, false),
+            const (0.0, 0.0));
+        expect(MainAxisAlignment.center.distributeSpace(60, 3, 0, false),
+            const (30.0, 0.0));
+        // The remaining space would be placed inside the RenderFlex
+        // before the first child.
+        expect(MainAxisAlignment.end.distributeSpace(60, 3, 0, false),
+            const (60.0, 0.0));
+        expect(MainAxisAlignment.spaceBetween.distributeSpace(60, 3, 0, false),
+            const (0.0, 30.0));
+        expect(MainAxisAlignment.spaceAround.distributeSpace(60, 3, 0, false),
+            const (10.0, 20.0));
+        expect(MainAxisAlignment.spaceEvenly.distributeSpace(60, 3, 0, false),
+            const (15.0, 15.0));
+
+        // The remaining space would be placed after the RenderFlex
+        expect(MainAxisAlignment.spaceBetween.distributeSpace(60, 1, 0, false),
+            const (0.0, 0.0));
+        expect(MainAxisAlignment.spaceAround.distributeSpace(60, 0, 0, false),
+            const (0.0, 0.0));
+      });
+
+      test('With spacing smaller than space between / around / evenly', () {
+        expect(MainAxisAlignment.start.distributeSpace(60, 3, 10, false),
+            (0.0, 10.0));
+        // 10 between each child -> 10 * 2 = 20
+        // 60 - 20 = 40
+        // 40 / 2 = 20
+        expect(MainAxisAlignment.center.distributeSpace(60, 3, 10, false),
+            (20.0, 10.0));
+        expect(MainAxisAlignment.end.distributeSpace(60, 3, 10, false),
+            (40.0, 10.0));
+        // 10 is smaller than 30, so it doesn't change anything.
+        expect(MainAxisAlignment.spaceBetween.distributeSpace(60, 3, 10, false),
+            (0.0, 30.0));
+        expect(MainAxisAlignment.spaceAround.distributeSpace(60, 3, 10, false),
+            (10.0, 20.0));
+        expect(MainAxisAlignment.spaceEvenly.distributeSpace(60, 3, 10, false),
+            (15.0, 15.0));
+
+        expect(MainAxisAlignment.spaceBetween.distributeSpace(60, 1, 10, false),
+            const (0.0, 10.0));
+        expect(MainAxisAlignment.spaceAround.distributeSpace(60, 0, 10, false),
+            const (0.0, 10.0));
+      });
+
+      test('With spacing larger than space between / around / evenly', () {
+        expect(MainAxisAlignment.start.distributeSpace(60, 3, 30, false),
+            (0.0, 30.0));
+        // 30 between each child -> 30 * 2 = 60
+        // 60 - 60 = 0
+        // 0 / 2 = 0
+        expect(MainAxisAlignment.center.distributeSpace(60, 3, 30, false),
+            (0.0, 30.0));
+        expect(MainAxisAlignment.end.distributeSpace(60, 3, 30, false),
+            (0.0, 30.0));
+        expect(MainAxisAlignment.spaceBetween.distributeSpace(60, 3, 30, false),
+            (0.0, 30.0));
+        // This is more than there is available space,
+        // which is why [RenderFlex._getIntrinsicSize] reserves enough space
+        // for this not to happen.
+        expect(MainAxisAlignment.spaceAround.distributeSpace(60, 3, 30, false),
+            (15.0, 30.0));
+        expect(MainAxisAlignment.spaceEvenly.distributeSpace(60, 3, 30, false),
+            (30.0, 30.0));
+
+        expect(MainAxisAlignment.spaceBetween.distributeSpace(60, 1, 30, false),
+            const (0.0, 30.0));
+        expect(MainAxisAlignment.spaceAround.distributeSpace(60, 0, 30, false),
+            const (0.0, 30.0));
+      });
+    });
+
+    test('MainAxisSize.min inside tightly constrained', () {
+      const BoxConstraints square =
+          BoxConstraints.tightFor(width: 100.0, height: 100.0);
+      final RenderConstrainedBox box1 =
+          RenderConstrainedBox(additionalConstraints: square);
+      final RenderConstrainedBox box2 =
+          RenderConstrainedBox(additionalConstraints: square);
+      final RenderConstrainedBox box3 =
+          RenderConstrainedBox(additionalConstraints: square);
+      final RenderFlex flex = RenderFlex(
+        textDirection: TextDirection.rtl,
+        mainAxisSize: MainAxisSize.min,
+        spacing: 10.0,
+      );
+      flex.addAll(<RenderBox>[box1, box2, box3]);
+      layout(flex);
+      expect(flex.constraints.hasTightWidth, isTrue);
+      expect(box1.localToGlobal(Offset.zero), const Offset(700.0, 250.0));
+      expect(box2.localToGlobal(Offset.zero), const Offset(590.0, 250.0));
+      expect(box3.localToGlobal(Offset.zero), const Offset(480.0, 250.0));
+      expect(box1.size, const Size(100.0, 100.0));
+      expect(box2.size, const Size(100.0, 100.0));
+      expect(box3.size, const Size(100.0, 100.0));
+    });
+
+    /// Just a single child, so spacing should not affect the layout.
+    test('Overconstrained flex', () {
+      final RenderDecoratedBox box = RenderDecoratedBox(decoration: const BoxDecoration());
+      final RenderFlex flex = RenderFlex(textDirection: TextDirection.ltr, spacing: 10, children: <RenderBox>[box]);
+      layout(flex, constraints: const BoxConstraints(
+        minWidth: 200.0,
+        maxWidth: 200.0,
+        minHeight: 200.0,
+        maxHeight: 200.0,
+      ));
+
+      expect(flex.size.width, equals(200.0), reason: 'flex width');
+      expect(flex.size.height, equals(200.0), reason: 'flex height');
+    });
+
+    test('Overconstrained flex, overflow because of spacing', () {
+      final RenderDecoratedBox box = RenderDecoratedBox(decoration: const BoxDecoration());
+      final RenderFlex flex = RenderFlex(textDirection: TextDirection.ltr, spacing: 200, mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: <RenderBox>[box]);
+      layout(flex, constraints: const BoxConstraints(
+        minWidth: 200.0,
+        maxWidth: 200.0,
+        minHeight: 200.0,
+        maxHeight: 200.0,
+      ));
+
+      expect(flex.toStringShort(), contains('OVERFLOWING'));
+
+      expect(flex.size.width, equals(200.0), reason: 'flex width');
+      expect(flex.size.height, equals(200.0), reason: 'flex height');
+    });
+  });
+
+  test('Can call methods that check overflow even if overflow value is not set',
+      () {
     final List<dynamic> exceptions = <dynamic>[];
     final RenderFlex flex = RenderFlex(children: const <RenderBox>[]);
     // This forces a check for _hasOverflow
     expect(flex.toStringShort(), isNot(contains('OVERFLOWING')));
     layout(flex, phase: EnginePhase.paint, onErrors: () {
-      exceptions.addAll(TestRenderingFlutterBinding.instance.takeAllFlutterExceptions());
+      exceptions.addAll(
+          TestRenderingFlutterBinding.instance.takeAllFlutterExceptions());
     });
     // We expect the RenderFlex to throw during performLayout() for not having
     // a text direction, thus leaving it with a null overflow value. It'll then
@@ -917,10 +1057,11 @@ class RenderFlowBaselineTestBox extends RenderBox {
 
   int lineGridCount(double width) {
     final int gridsPerLine = width >= gridCount * gridSize.width
-      ? gridCount
-      : width ~/ gridSize.width;
+        ? gridCount
+        : width ~/ gridSize.width;
     return math.max(1, gridsPerLine);
   }
+
   int lineCount(double width) => (gridCount / lineGridCount(width)).ceil();
 
   double? Function(double height) baselinePlacer = (double height) => null;
@@ -930,9 +1071,11 @@ class RenderFlowBaselineTestBox extends RenderBox {
   @override
   double computeMaxIntrinsicWidth(double height) => gridSize.width * gridCount;
   @override
-  double computeMinIntrinsicHeight(double width) => gridSize.height * lineCount(width);
+  double computeMinIntrinsicHeight(double width) =>
+      gridSize.height * lineCount(width);
   @override
-  double computeMaxIntrinsicHeight(double width) => computeMinIntrinsicHeight(width);
+  double computeMaxIntrinsicHeight(double width) =>
+      computeMinIntrinsicHeight(width);
   @override
   Size computeDryLayout(covariant BoxConstraints constraints) {
     return constraints.constrain(Size(
@@ -940,10 +1083,14 @@ class RenderFlowBaselineTestBox extends RenderBox {
       gridSize.height * lineCount(constraints.maxWidth),
     ));
   }
+
   @override
-  double? computeDryBaseline(covariant BoxConstraints constraints, TextBaseline baseline) => baselinePlacer(getDryLayout(constraints).height);
+  double? computeDryBaseline(
+          covariant BoxConstraints constraints, TextBaseline baseline) =>
+      baselinePlacer(getDryLayout(constraints).height);
   @override
-  double? computeDistanceToActualBaseline(TextBaseline baseline) => baselinePlacer(size.height);
+  double? computeDistanceToActualBaseline(TextBaseline baseline) =>
+      baselinePlacer(size.height);
 
   @override
   void performLayout() {
