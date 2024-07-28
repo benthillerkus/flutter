@@ -72,7 +72,8 @@ class _LayoutSizes {
   _LayoutSizes({
     required this.axisSize,
     required this.baselineOffset,
-    required this.mainAxisFreeSpace,
+    required this.mainAxisUnassignedSpace,
+    required this.mainAxisReservedSpace,
     required this.spacePerFlex,
   }) : assert(spacePerFlex?.isFinite ?? true);
 
@@ -82,7 +83,12 @@ class _LayoutSizes {
   /// The free space along the main axis. If the value is positive, the free space
   /// will be distributed according to the [MainAxisAlignment] specified. A
   /// negative value indicates the RenderFlex overflows along the main axis.
-  final double mainAxisFreeSpace;
+  final double mainAxisUnassignedSpace;
+
+  /// The space reserved by the [RenderFlex.spacing] parameter.
+  /// Together with [mainAxisUnassignedSpace], it represents the total space
+  /// that is not allocated to children.
+  final double mainAxisReservedSpace;
 
   /// Null if the RenderFlex is not baseline aligned, or none of its children has
   /// a valid baseline of the given [TextBaseline] type.
@@ -863,11 +869,11 @@ class RenderFlex extends RenderBox with ContainerRenderObjectMixin<RenderBox, Fl
     BaselineOffset baselineOffset = BaselineOffset.noBaseline;
     switch (direction) {
       case Axis.vertical:
-        final double freeSpace = math.max(0.0, sizes.mainAxisFreeSpace);
+        final double freeSpace = math.max(0.0, sizes.mainAxisUnassignedSpace);
         final bool flipMainAxis = _flipMainAxis;
         final (double leadingSpaceY, double spaceBetween) = mainAxisAlignment._distributeSpace(freeSpace, childCount, spacing, flipMainAxis);
         double y = flipMainAxis
-          ? leadingSpaceY + (childCount - 1) * spaceBetween + (sizes.axisSize.mainAxisExtent - sizes.mainAxisFreeSpace)
+          ? leadingSpaceY + (childCount - 1) * spaceBetween + (sizes.axisSize.mainAxisExtent - sizes.mainAxisUnassignedSpace) // TODO fix baselines
           : leadingSpaceY;
         final double directionUnit = flipMainAxis ? -1.0 : 1.0;
         for (RenderBox? child = firstChild; baselineOffset == BaselineOffset.noBaseline && child != null; child = childAfter(child)) {
@@ -1019,7 +1025,8 @@ class RenderFlex extends RenderBox with ContainerRenderObjectMixin<RenderBox, Fl
     RenderBox? firstFlexChild;
     _AscentDescent accumulatedAscentDescent = _AscentDescent.none;
 
-    _AxisSize accumulatedSize = _AxisSize(mainAxisExtent: _getReservedMainAxisSpace(), crossAxisExtent: 0);
+    final double mainAxisReservedSpace = _getReservedMainAxisSpace();
+    _AxisSize accumulatedSize = _AxisSize(mainAxisExtent: mainAxisReservedSpace, crossAxisExtent: 0);
     for (RenderBox? child = firstChild; child != null; child = childAfter(child)) {
       final int flex;
       if (canFlex && (flex = _getFlex(child)) > 0) {
@@ -1072,7 +1079,8 @@ class RenderFlex extends RenderBox with ContainerRenderObjectMixin<RenderBox, Fl
       .applyConstraints(constraints, direction);
     return _LayoutSizes(
       axisSize: constrainedSize,
-      mainAxisFreeSpace: constrainedSize.mainAxisExtent - accumulatedSize.mainAxisExtent,
+      mainAxisUnassignedSpace: constrainedSize.mainAxisExtent - accumulatedSize.mainAxisExtent,
+      mainAxisReservedSpace: mainAxisReservedSpace,
       baselineOffset: accumulatedAscentDescent.baselineOffset,
       spacePerFlex: firstFlexChild == null ? null : spacePerFlex,
     );
@@ -1100,9 +1108,9 @@ class RenderFlex extends RenderBox with ContainerRenderObjectMixin<RenderBox, Fl
 
     final double crossAxisExtent = sizes.axisSize.crossAxisExtent;
     size = sizes.axisSize.toSize(direction);
-    _overflow = math.max(0.0, -sizes.mainAxisFreeSpace);
+    _overflow = math.max(0.0, -sizes.mainAxisUnassignedSpace);
 
-    final double remainingSpace = math.max(0.0, sizes.mainAxisFreeSpace);
+    final double remainingSpace = math.max(0.0, sizes.mainAxisUnassignedSpace + sizes.mainAxisReservedSpace);
     final bool flipMainAxis = _flipMainAxis;
     final bool flipCrossAxis = _flipCrossAxis;
     final (double leadingSpace, double betweenSpace) = mainAxisAlignment._distributeSpace(remainingSpace, childCount, spacing, flipMainAxis);
@@ -1113,6 +1121,9 @@ class RenderFlex extends RenderBox with ContainerRenderObjectMixin<RenderBox, Fl
     // Position all children in visual order: starting from the top-left child and
     // work towards the child that's farthest away from the origin.
     double childMainPosition = leadingSpace;
+    // if (mainAxisAlignment == MainAxisAlignment.end) {
+    //   childMainPosition = 0;
+    // }
     for (RenderBox? child = topLeftChild; child != null; child = nextChild(child)) {
       final double? childBaselineOffset;
       final bool baselineAlign = baselineOffset != null
