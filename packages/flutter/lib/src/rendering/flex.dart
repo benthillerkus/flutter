@@ -1193,9 +1193,13 @@ class RenderFlex extends RenderBox with ContainerRenderObjectMixin<RenderBox, Fl
       // Simulate a child rect that overflows by the right amount. This child
       // rect is never used for drawing, just for determining the overflow
       // location and amount.
-      final Rect overflowChildRect = switch (_direction) {
-        Axis.horizontal => Rect.fromLTWH(0.0, 0.0, size.width + _overflow, 0.0),
-        Axis.vertical   => Rect.fromLTWH(0.0, 0.0, 0.0, size.height + _overflow),
+      final Rect overflowChildRect = switch ((_direction, mainAxisAlignment)) {
+        (Axis.horizontal, MainAxisAlignment.end)    => Rect.fromLTWH(-_overflow, 0.0, size.width, 0.0),
+        (Axis.vertical,   MainAxisAlignment.end)    => Rect.fromLTWH(0.0, -_overflow, 0.0, size.height),
+        (Axis.horizontal, MainAxisAlignment.center) => Rect.fromLTWH(-_overflow / 2, 0.0, size.width + _overflow / 2, 0.0),
+        (Axis.vertical,   MainAxisAlignment.center) => Rect.fromLTWH(0.0, -_overflow / 2, 0.0, size.height + _overflow / 2),
+        (Axis.horizontal, _)                        => Rect.fromLTWH(0.0, 0.0, size.width + _overflow, 0.0),
+        (Axis.vertical,   _)                        => Rect.fromLTWH(0.0, 0.0, 0.0, size.height + _overflow),
       };
       paintOverflowIndicator(context, offset, Offset.zero & size, overflowChildRect, overflowHints: debugOverflowHints);
       return true;
