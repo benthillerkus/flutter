@@ -227,14 +227,16 @@ enum MainAxisAlignment {
     return switch (this) {
       MainAxisAlignment.start => flipped ? (freeSpace - (spacing * (itemCount - 1)), spacing) : (0.0, spacing),
 
-      MainAxisAlignment.end =>                             MainAxisAlignment.start._distributeSpace(freeSpace, itemCount, spacing, !flipped),
-      MainAxisAlignment.spaceBetween when itemCount < 2 => MainAxisAlignment.start._distributeSpace(freeSpace, itemCount, spacing, flipped),
-      MainAxisAlignment.spaceAround when itemCount == 0 => MainAxisAlignment.start._distributeSpace(freeSpace, itemCount, spacing, flipped),
+      MainAxisAlignment.end                              => MainAxisAlignment.start._distributeSpace(freeSpace, itemCount, spacing, !flipped),
+      MainAxisAlignment.spaceBetween when itemCount < 2  => MainAxisAlignment.start._distributeSpace(freeSpace, itemCount, spacing, flipped),
+      MainAxisAlignment.spaceAround  when itemCount == 0 => MainAxisAlignment.start._distributeSpace(freeSpace, itemCount, spacing, flipped),
+      MainAxisAlignment.spaceAround  when spacing < 0    => MainAxisAlignment.spaceBetween._distributeSpace(freeSpace, itemCount, spacing, flipped),
+      MainAxisAlignment.spaceEvenly  when spacing < 0    => MainAxisAlignment.spaceBetween._distributeSpace(freeSpace, itemCount, spacing, flipped),
 
-      MainAxisAlignment.center =>       ((freeSpace - (spacing * (itemCount - 1))) / 2, spacing),
+      MainAxisAlignment.center       => ((freeSpace - (spacing * (itemCount - 1))) / 2, spacing),
       MainAxisAlignment.spaceBetween => (0.0,                                           math.max(spacing, freeSpace / (itemCount - 1))),
-      MainAxisAlignment.spaceAround =>  (math.max(spacing,freeSpace / itemCount) / 2,   math.max(spacing, freeSpace / itemCount)),
-      MainAxisAlignment.spaceEvenly =>  (math.max(spacing, freeSpace / (itemCount + 1)),math.max(spacing, freeSpace / (itemCount + 1))),
+      MainAxisAlignment.spaceAround  => (math.max(spacing, freeSpace / itemCount) / 2,  math.max(spacing, freeSpace / itemCount)),
+      MainAxisAlignment.spaceEvenly  => (math.max(spacing, freeSpace / (itemCount + 1)),math.max(spacing, freeSpace / (itemCount + 1))),
     };
   }
 }
@@ -1116,7 +1118,7 @@ class RenderFlex extends RenderBox with ContainerRenderObjectMixin<RenderBox, Fl
     size = sizes.axisSize.toSize(direction);
     _overflow = math.max(0.0, -sizes.mainAxisUnassignedSpace);
 
-    final double remainingSpace = math.max(0.0, sizes.mainAxisUnassignedSpace + sizes.mainAxisReservedSpace);
+    final double remainingSpace = sizes.mainAxisUnassignedSpace + sizes.mainAxisReservedSpace;
     final bool flipMainAxis = _flipMainAxis;
     final bool flipCrossAxis = _flipCrossAxis;
     
