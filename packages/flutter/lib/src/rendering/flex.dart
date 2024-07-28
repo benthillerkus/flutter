@@ -230,8 +230,14 @@ enum MainAxisAlignment {
       MainAxisAlignment.end                              => MainAxisAlignment.start._distributeSpace(freeSpace, itemCount, spacing, !flipped),
       MainAxisAlignment.spaceBetween when itemCount < 2  => MainAxisAlignment.start._distributeSpace(freeSpace, itemCount, spacing, flipped),
       MainAxisAlignment.spaceAround  when itemCount == 0 => MainAxisAlignment.start._distributeSpace(freeSpace, itemCount, spacing, flipped),
-      MainAxisAlignment.spaceAround  when spacing < 0    => MainAxisAlignment.spaceBetween._distributeSpace(freeSpace, itemCount, spacing, flipped),
-      MainAxisAlignment.spaceEvenly  when spacing < 0    => MainAxisAlignment.spaceBetween._distributeSpace(freeSpace, itemCount, spacing, flipped),
+
+      // Prevent spaceAround & spaceEvenly from trying to place items outside the bounds of the RenderFlex
+      // by using spaceBetween instead.
+      // The when condition asks if the calculated between spacing will be less than 0.
+      // (we can't use spacing directly, because freeSpace can be large enough
+      // to counter any desired negativ spacing (e.g. when freeSpace when MainAxisSize.max is used)).
+      MainAxisAlignment.spaceAround  when math.max(spacing, freeSpace / itemCount) < 0       => MainAxisAlignment.spaceBetween._distributeSpace(freeSpace, itemCount, spacing, flipped),
+      MainAxisAlignment.spaceEvenly  when math.max(spacing, freeSpace / (itemCount + 1)) < 0 => MainAxisAlignment.spaceBetween._distributeSpace(freeSpace, itemCount, spacing, flipped),
 
       MainAxisAlignment.center       => ((freeSpace - (spacing * (itemCount - 1))) / 2, spacing),
       MainAxisAlignment.spaceBetween => (0.0,                                           math.max(spacing, freeSpace / (itemCount - 1))),
