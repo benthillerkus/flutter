@@ -45,7 +45,7 @@ class PredictiveBackPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    return _PredictiveBackGestureDetector(
+    return PredictiveBackGestureDetector(
       route: route,
       builder: (BuildContext context) {
         // Only do a predictive back transition when the user is performing a
@@ -72,17 +72,22 @@ class PredictiveBackPageTransitionsBuilder extends PageTransitionsBuilder {
   }
 }
 
-class _PredictiveBackGestureDetector extends StatefulWidget {
-  const _PredictiveBackGestureDetector({required this.route, required this.builder});
+/// Used by [PredictiveBackPageTransitionsBuilder] to detect incoming [PredictiveBackEvent]s
+/// and redirect them to the provided [route].
+///
+/// This is useful for building custom page transitions that - on Android U and above -
+/// can animate to being partially dismissed.
+class PredictiveBackGestureDetector extends StatefulWidget {
+  const PredictiveBackGestureDetector({required this.route, required this.builder});
 
   final WidgetBuilder builder;
   final PredictiveBackRoute route;
 
   @override
-  State<_PredictiveBackGestureDetector> createState() => _PredictiveBackGestureDetectorState();
+  State<PredictiveBackGestureDetector> createState() => _PredictiveBackGestureDetectorState();
 }
 
-class _PredictiveBackGestureDetectorState extends State<_PredictiveBackGestureDetector>
+class _PredictiveBackGestureDetectorState extends State<PredictiveBackGestureDetector>
     with WidgetsBindingObserver {
   /// True when the predictive back gesture is enabled.
   bool get _isEnabled {
